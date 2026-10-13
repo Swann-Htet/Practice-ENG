@@ -167,3 +167,11 @@ details[open]>summary.hd::before{content:'-'}
 
 @media print{.bar,.foot,.no-print,.side{display:none!important}main{padding:0!important}.card{break-inside:avoid}body{font-size:13px}}
 
+
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--tint)}
+.subnav a{padding:8px 14px;border-radius:6px;text-decoration:none;font-weight:700;color:var(--red);background:#fff;border:1.5px solid var(--line)}
+.subnav a small{margin-left:4px;color:var(--mut)}
+.subnav a:hover{border-color:var(--red)}
+.subnav a.on{background:var(--red);color:#fff;border-color:var(--red)}
+.subnav a.on small{color:rgba(255,255,255,.85)}
+

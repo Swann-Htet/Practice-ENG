@@ -9,10 +9,12 @@ Practice site built from the six PDFs in `Assets/PDF`:
 | Reading | 5 passages, 39 questions, glossary with Burmese, Burmese summary, explained answers | Guide + Simulation 001 |
 | Listening | 2 conversations, 2 talks, 7 speaking items, read aloud with the browser voice | Guide |
 | Prepare test | Links found with Google (online tests, ready-made Google searches, MFU notices) plus your own saved links | Google search |
-| Grammar practice | 223 items (incomplete sentence, error identification, text completion) | Grammar sheet, guide, simulation |
+| Pattern drills | 5 tabs (parallel structure, active/passive, direct/indirect, tense confusion, combine all) with Burmese memory rules and 65 new questions | Written for this site |
+| Grammar practice | 288 items (incomplete sentence, error identification, text completion) | Grammar sheet, guide, simulation |
 
 Open `index.html` through any static web server (for example `python -m http.server`). Progress is saved in the browser (localStorage).
 Font: DM Sans (Noto Sans Myanmar for Burmese text).
+
 
 
 

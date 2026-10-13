@@ -40,7 +40,7 @@
 
   /* ---------- helpers ---------- */
   var app = $('#app');
-  var NAV = [['home', 'Home'], ['skill', 'Skill test'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice'], ['prepare', 'Prepare test']];
+  var NAV = [['home', 'Home'], ['skill', 'Skill test'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice'], ['drills', 'Pattern drills'], ['prepare', 'Prepare test']];
   function hydrate(r) { $$('[data-ic]', r || document).forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-ic')); el.removeAttribute('data-ic'); }); }
   function parseHash() {
     var h = location.hash.replace(/^#\/?/, ''), q = {}, i = h.indexOf('?');
@@ -56,7 +56,7 @@
     var r = parseHash();
     $('#nav').innerHTML = NAV.map(function (n) { return '<a href="#/' + n[0] + '" class="' + (n[0] === r.page ? 'on' : '') + '">' + n[1] + '</a>'; }).join('');
     stopSpeak();
-    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice, prepare: viewPrepare, skill: function (r) { if (r.id === 'result') { var sk = SK(); if (sk.cur && sk.cur.result) { skillResult(); return; } } viewSkill(); } }[r.page] || viewHome;
+    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice, prepare: viewPrepare, drills: viewDrills, skill: function (r) { if (r.id === 'result') { var sk = SK(); if (sk.cur && sk.cur.result) { skillResult(); return; } } viewSkill(); } }[r.page] || viewHome;
     app.className = 'view'; app.style.animation = 'none'; void app.offsetHeight; app.style.animation = '';
     fn(r); hydrate(app); window.scrollTo(0, 0);
   }
@@ -155,30 +155,50 @@
       (link ? '<a class="btn solid" href="' + link + '">' + ic('pen') + ' Practice this topic</a>' : '') +
       (next ? '<a class="btn" href="#/grammar/' + next.id + '">' + esc(next.title) + ' ' + ic('arrow') + '</a>' : '') +
       '</div></article></div>';
-    if (cur.quiz) miniQuiz(cur.quiz);
+    if (cur.quiz) miniQuiz([cur.quiz], '#gq', '#gqscore', 99);
   }
-  /* quick quiz under a grammar topic: uses the practice bank, answers are shared with Grammar practice */
-  function miniQuiz(topic) {
-    var items = PRACTICE.filter(function (p) { return p.topic === topic; }), ans = S.practice.ans, box = $('#gq');
+  /* quiz widget over the practice bank (grammar topic pages and pattern drills); answers are shared with Grammar practice */
+  function miniQuiz(topics, boxSel, scoreSel, pageSize) {
+    var items = PRACTICE.filter(function (p) { return topics.indexOf(p.topic) >= 0; }), ans = S.practice.ans, box = $(boxSel), shown = pageSize;
     function draw() {
       var d = items.filter(function (p) { return ans[p.id] != null; }).length, ok = items.filter(function (p) { return ans[p.id] === p.a; }).length;
-      $('#gqscore').textContent = d + ' / ' + items.length + ' answered, ' + ok + ' correct';
-      box.innerHTML = items.map(function (p, qi) {
+      $(scoreSel).textContent = d + ' / ' + items.length + ' answered, ' + ok + ' correct';
+      box.innerHTML = items.slice(0, shown).map(function (p, qi) {
         var a = ans[p.id], done = a != null;
         return '<div class="qi" data-id="' + p.id + '">' + howTo(p.type) + '<div class="qn"><span class="num">' + (qi + 1) + '</span><p>' + esc(p.q) + '</p></div>' +
           p.opts.map(function (o, i) { var cls = ''; if (done) { if (i === p.a) cls = 'ok'; else if (i === a) cls = 'bad'; } return option(i, o, cls, done); }).join('') +
           (done ? whyBox(p.why, p.note) : '') + '</div>';
-      }).join('') + '<button class="btn sm" id="gqreset">' + ic('redo') + ' Reset this quiz</button>';
+      }).join('') +
+        (items.length > shown ? '<button class="btn solid" id="gqmore">Show 10 more (' + (items.length - shown) + ' left)</button> ' : '') +
+        '<button class="btn sm" id="gqreset">' + ic('redo') + ' Reset these answers</button>';
     }
     draw();
     box.onclick = function (e) {
-      var b = e.target.closest('.opt'), rs = e.target.closest('#gqreset');
+      var b = e.target.closest('.opt'), rs = e.target.closest('#gqreset'), mo = e.target.closest('#gqmore');
+      if (mo) { shown += 10; draw(); return; }
       if (rs) { items.forEach(function (p) { delete ans[p.id]; }); save(); draw(); return; }
       if (!b || b.disabled) return;
       ans[b.closest('.qi').dataset.id] = +b.dataset.k; save(); var y = window.scrollY; draw(); window.scrollTo(0, y);
     };
   }
 
+  /* ---------- PATTERN DRILLS (own sub-navbar) ---------- */
+  function viewDrills(r) {
+    var cur = DRILLS.filter(function (d) { return d.id === r.id; })[0] || DRILLS[0];
+    var total = 0, done = 0; DRILLS.forEach(function (d) { PRACTICE.forEach(function (p) { if (d.topics.indexOf(p.topic) >= 0) { total++; if (S.practice.ans[p.id] != null) done++; } }); });
+    app.innerHTML = '<h1>Pattern drills</h1><p class="lead">Short drills for the patterns that confuse most: parallel structure, active / passive, direct / indirect, tense confusion, and all of them combined. ' +
+      'Each tab has the memory rules in English + Burmese, then multiple-choice questions with instant answers. Progress: <b>' + done + ' / ' + total + '</b>.</p>' +
+      '<nav class="subnav" aria-label="Drills">' + DRILLS.map(function (d) {
+        var n = PRACTICE.filter(function (p) { return d.topics.indexOf(p.topic) >= 0; }).length;
+        return '<a href="#/drills/' + d.id + '" class="' + (d === cur ? 'on' : '') + '">' + esc(d.title) + ' <small>' + n + '</small></a>';
+      }).join('') + '</nav>' +
+      '<h2 style="margin-top:6px">' + esc(cur.title) + ' <span class="my" style="font-size:16px;color:var(--mut)">' + esc(cur.my) + '</span></h2>' +
+      '<div class="card" style="margin:0 0 16px"><h2>မှတ်ရလွယ်သော စည်းမျဉ်း · Memory rules</h2><div class="in scroll"><table class="t"><thead><tr><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+      cur.rules.map(function (x, i) { return '<tr' + (cur.id === 'tense' && i < 2 ? ' style="background:var(--tint)"' : '') + '><td>' + esc(x[0]) + '</td><td class="my">' + esc(x[1]) + '</td></tr>'; }).join('') + '</tbody></table></div></div>' +
+      '<div class="card"><h2>Questions <span class="pill" id="dqscore" style="float:right;text-transform:none;letter-spacing:0"></span></h2><div class="in" id="dq"></div></div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><a class="btn" href="#/grammar/combine">' + ic('book') + ' Combined-sentence method</a><a class="btn" href="#/practice">' + ic('pen') + ' Open in Grammar practice</a></div>';
+    miniQuiz(cur.topics, '#dq', '#dqscore', 10);
+  }
   /* ---------- VOCAB ---------- */
   var V = { cat: 'all', q: '', hide: false, mode: 'list', fi: 0, flip: false, quiz: null };
   function vkey(v) { return v.c + '|' + v.w; }
@@ -679,6 +699,7 @@
   hydrate(document);
   route();
 })();
+
 
 
 
