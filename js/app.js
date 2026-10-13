@@ -40,7 +40,7 @@
 
   /* ---------- helpers ---------- */
   var app = $('#app');
-  var NAV = [['home', 'Home'], ['skill', 'Skill test'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice'], ['drills', 'Pattern drills'], ['prepare', 'Prepare test']];
+  var NAV = [['home', 'Home'], ['skill', 'Skill test'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice'], ['drills', 'Pattern drills'], ['sets', 'Question sets'], ['prepare', 'Prepare test']];
   function hydrate(r) { $$('[data-ic]', r || document).forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-ic')); el.removeAttribute('data-ic'); }); }
   function parseHash() {
     var h = location.hash.replace(/^#\/?/, ''), q = {}, i = h.indexOf('?');
@@ -56,7 +56,7 @@
     var r = parseHash();
     $('#nav').innerHTML = NAV.map(function (n) { return '<a href="#/' + n[0] + '" class="' + (n[0] === r.page ? 'on' : '') + '">' + n[1] + '</a>'; }).join('');
     stopSpeak();
-    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice, prepare: viewPrepare, drills: viewDrills, skill: function (r) { if (r.id === 'result') { var sk = SK(); if (sk.cur && sk.cur.result) { skillResult(); return; } } viewSkill(); } }[r.page] || viewHome;
+    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice, prepare: viewPrepare, drills: viewDrills, sets: viewSets, skill: function (r) { if (r.id === 'result') { var sk = SK(); if (sk.cur && sk.cur.result) { skillResult(); return; } } viewSkill(); } }[r.page] || viewHome;
     app.className = 'view'; app.style.animation = 'none'; void app.offsetHeight; app.style.animation = '';
     fn(r); hydrate(app); window.scrollTo(0, 0);
   }
@@ -159,7 +159,7 @@
   }
   /* quiz widget over the practice bank (grammar topic pages and pattern drills); answers are shared with Grammar practice */
   function miniQuiz(topics, boxSel, scoreSel, pageSize) {
-    var items = PRACTICE.filter(function (p) { return topics.indexOf(p.topic) >= 0; }), ans = S.practice.ans, box = $(boxSel), shown = pageSize;
+    var items = PRACTICE.filter(typeof topics === 'function' ? topics : function (p) { return topics.indexOf(p.topic) >= 0; }), ans = S.practice.ans, box = $(boxSel), shown = pageSize;
     function draw() {
       var d = items.filter(function (p) { return ans[p.id] != null; }).length, ok = items.filter(function (p) { return ans[p.id] === p.a; }).length;
       $(scoreSel).textContent = d + ' / ' + items.length + ' answered, ' + ok + ' correct';
@@ -180,6 +180,24 @@
       if (!b || b.disabled) return;
       ans[b.closest('.qi').dataset.id] = +b.dataset.k; save(); var y = window.scrollY; draw(); window.scrollTo(0, y);
     };
+  }
+
+  /* ---------- QUESTION SETS (Set 1, Set 2) ---------- */
+  function viewSets(r) {
+    var cur = QSETS.filter(function (x) { return x.id === r.id; })[0] || QSETS[0];
+    var cnt = function (src) { var all = PRACTICE.filter(function (p) { return p.src === src; }); return [all.filter(function (p) { return S.practice.ans[p.id] != null; }).length, all.length, all.filter(function (p) { return S.practice.ans[p.id] === p.a; }).length]; };
+    var c = cnt(cur.src);
+    app.innerHTML = '<h1>Question sets</h1><p class="lead">Two practice sets taken from your PDFs. Answer every question, then use the explanation to learn from your mistakes. Answers are saved in this browser.</p>' +
+      '<nav class="subnav" aria-label="Sets">' + QSETS.map(function (x) {
+        var n = PRACTICE.filter(function (p) { return p.src === x.src; }).length;
+        return '<a href="#/sets/' + x.id + '" class="' + (x === cur ? 'on' : '') + '">' + esc(x.title) + ': ' + esc(x.sub) + ' <small>' + n + '</small></a>';
+      }).join('') + '</nav>' +
+      '<div class="card" style="margin-bottom:16px"><h2>' + esc(cur.title) + ': ' + esc(cur.sub) + '</h2><div class="in"><p style="margin:0 0 6px">' + esc(cur.about) + '</p>' +
+      '<p class="srcline" style="margin:0">Source: ' + esc(cur.pdf) + '</p>' +
+      '<div class="warn" style="margin-top:10px">' + ic('alert') + '<span>The PDF prints no answer key, so the answers and explanations were worked out for this site. Items with an info note are less certain; where the sheet printed no options for a cloze blank, the options were written for practice.</span></div>' +
+      '<p style="margin:10px 0 0"><span class="pill">Progress: ' + c[0] + ' / ' + c[1] + ' answered, ' + c[2] + ' correct</span></p></div></div>' +
+      '<div class="card"><h2>Questions <span class="pill" id="sqscore" style="float:right;text-transform:none;letter-spacing:0"></span></h2><div class="in" id="sq"></div></div>';
+    miniQuiz(function (p) { return p.src === cur.src; }, '#sq', '#sqscore', 10);
   }
 
   /* ---------- PATTERN DRILLS (own sub-navbar) ---------- */
@@ -699,6 +717,7 @@
   hydrate(document);
   route();
 })();
+
 
 
 
