@@ -22,6 +22,8 @@
     info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
     bulb: '<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>',
     alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>', trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
     redo: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>'
   };
   var ic = function (n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[n] + '</svg>'; };
@@ -37,7 +39,7 @@
 
   /* ---------- helpers ---------- */
   var app = $('#app');
-  var NAV = [['home', 'Home'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice']];
+  var NAV = [['home', 'Home'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice'], ['prepare', 'Prepare test']];
   function hydrate(r) { $$('[data-ic]', r || document).forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-ic')); el.removeAttribute('data-ic'); }); }
   function parseHash() {
     var h = location.hash.replace(/^#\/?/, ''), q = {}, i = h.indexOf('?');
@@ -53,7 +55,7 @@
     var r = parseHash();
     $('#nav').innerHTML = NAV.map(function (n) { return '<a href="#/' + n[0] + '" class="' + (n[0] === r.page ? 'on' : '') + '">' + n[1] + '</a>'; }).join('');
     stopSpeak();
-    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice }[r.page] || viewHome;
+    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice, prepare: viewPrepare }[r.page] || viewHome;
     app.className = 'view'; app.style.animation = 'none'; void app.offsetHeight; app.style.animation = '';
     fn(r); hydrate(app); window.scrollTo(0, 0);
   }
@@ -98,6 +100,7 @@
       tile('#/reading', 'read', 'Reading practice', 'Five passages, glossary, Burmese gist, explained answers.', rt[0], rt[1]) +
       tile('#/listening', 'ear', 'Listening practice', 'Conversations, talks and speaking items read aloud.', lt[0], lt[1]) +
       tile('#/practice', 'pen', 'Grammar practice', 'Incomplete sentence, error identification, text completion.', pa, PRACTICE.length) +
+      tile('#/prepare', 'link', 'Prepare test', 'Links found with Google: online tests and searches. Add your own links.', 0, 0).replace('0 / 0 done', PREP_LINKS.reduce(function (n, g) { return n + g.items.length; }, 0) + ' links') +
       '</div>' +
       '<div class="card" style="margin-top:20px"><h2>Exam format (from the guide)</h2><div class="in scroll"><table class="t"><thead><tr><th>Part</th><th>Sections</th><th>Items</th></tr></thead><tbody>' +
       '<tr><td>1 Listening &amp; Speaking</td><td>Conversations, Talks, Speaking</td><td>about 25</td></tr>' +
@@ -118,7 +121,14 @@
       case 'ex': return '<div class="ex">' + b.items.map(function (i) { return '<div>' + esc(i.s) + (i.n ? '<em>' + esc(i.n) + '</em>' : '') + '</div>'; }).join('') + '</div>';
       case 'table': return '<div class="scroll"><table class="t"><thead><tr>' + b.head.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
         b.rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
-      case 'tip': return '<div class="tip">' + ic('bulb') + '<span>' + esc(b.text) + '</span></div>';
+      case 'method': return '<div class=""scroll""><table class=""t""><thead><tr><th>Step</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+        GRAMMAR_METHOD.map(function (m, i) { return '<tr><td><b>' + (i + 1) + '</b></td><td>' + esc(m[0]) + '</td><td class=""my"">' + esc(m[1]) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      case 'combo': return b.items.map(function (e, n) {
+        return '<div class=""card"" style=""margin:12px 0""><h2>Example ' + (n + 1) + '</h2><div class=""in""><p style=""font-weight:700;margin:0 0 8px"">' + esc(e.s) + '</p>' +
+          '<div class=""scroll""><table class=""t""><thead><tr><th>Layer</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+          e.steps.map(function (st, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(st[0]) + '</td><td class=""my"">' + esc(st[1]) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+          '<p style=""margin:8px 0 0""><span class=""pill ok"">' + ic('check') + ' Answer: ' + esc(e.ans) + '</span></p></div></div>'; }).join('');
+      case 'tip': return '<div class=""tip"">' + ic('bulb') + '<span>' + esc(b.text) + '</span></div>';
       case 'warn': return '<div class="warn">' + ic('alert') + '<span>' + esc(b.text) + '</span></div>';
     }
     return '';
@@ -131,7 +141,9 @@
     var link = topic ? '#/practice?topic=' + encodeURIComponent(topic) : (cur.id === 'errorid' ? '#/practice?type=' + encodeURIComponent('Error identification') : (cur.id === 'textcomp' ? '#/practice?type=' + encodeURIComponent('Text completion') : ''));
     app.innerHTML = '<div class="split"><nav class="side">' + side + '</nav><article>' +
       '<h1>' + esc(cur.title) + '</h1><p class="srcline">Source: ' + esc(cur.src) + '</p>' +
-      '<p class="my mylabel">' + esc(cur.my) + '</p>' +
+      '<p class=""my mylabel"">' + esc(cur.my) + '</p>' +
+      (cur.bi && cur.bi.length ? '<div class=""card"" style=""margin:0 0 16px""><h2>English + မြန်မာ summary</h2><div class=""in scroll""><table class=""t""><thead><tr><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+        cur.bi.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td class=""my"">' + esc(r[1]) + '</td></tr>'; }).join('') + '</tbody></table></div></div>' : '') +
       cur.blocks.map(renderBlock).join('') +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">' +
       (prev ? '<a class="btn" href="#/grammar/' + prev.id + '">' + ic('left') + ' ' + esc(prev.title) + '</a>' : '') +
@@ -388,7 +400,10 @@
   var PF = null;
   function pFiltered() {
     var f = S.practice.f;
-    return PRACTICE.filter(function (p) { return (f.src === 'all' || p.src === f.src) && (f.type === 'all' || p.type === f.type) && (f.topic === 'all' || p.topic === f.topic); });
+    var list = PRACTICE.filter(function (p) { return (f.src === 'all' || p.src === f.src) && (f.type === 'all' || p.type === f.type) && (f.topic === 'all' || p.topic === f.topic); });
+    var ord = S.practice.order;
+    if (ord) { var pos = {}; ord.forEach(function (id, i) { pos[id] = i; }); list = list.slice().sort(function (a, b) { return (pos[a.id] || 0) - (pos[b.id] || 0); }); }
+    return list;
   }
   function viewPractice(r) {
     var f = S.practice.f;
@@ -398,13 +413,21 @@
     var sel = function (id, label, arr, val, fmt) { return '<label>' + label + ' <select id="' + id + '"><option value="all">All</option>' + arr.map(function (v) { return '<option value="' + esc(v) + '"' + (v === val ? ' selected' : '') + '>' + esc(fmt ? fmt(v) : v) + '</option>'; }).join('') + '</select></label>'; };
     app.innerHTML = '<h1>Grammar practice</h1><p class="lead">All practice items from the Grammar sheet, the exam guide and Simulation 001. Answer to see the explanation. Items from the guide and the simulation follow the printed key; items from the Grammar sheet (no key printed) were worked out and explained.</p>' +
       '<div class="tools">' + sel('pfs', 'Source', Object.keys(PRACTICE_SRC), f.src, function (v) { return PRACTICE_SRC[v]; }) + sel('pft', 'Type', uniq('type'), f.type) + sel('pfp', 'Topic', uniq('topic'), f.topic) +
-      '<span class="pill" id="pcount"></span><button class="btn sm" id="preset">' + ic('redo') + ' Reset answers</button></div>' +
+      '<span class="pill" id="pcount"></span><button class="btn sm" id="pmix">' + ic('redo') + ' ' + (S.practice.order ? 'Original order' : 'Mix order (combined practice)') + '</button>' +
+      '<button class="btn sm" id="preset">' + ic('trash') + ' Reset answers</button></div>' +
+      '<details class="card" style="margin-bottom:14px"><summary class="hd" style="cursor:pointer">How to solve combined sentences: step by step (English + မြန်မာ)</summary><div class="in scroll"><table class="t"><thead><tr><th>Step</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+      GRAMMAR_METHOD.map(function (m, i) { return '<tr><td><b>' + (i + 1) + '</b></td><td>' + esc(m[0]) + '</td><td class="my">' + esc(m[1]) + '</td></tr>'; }).join('') +
+      '</tbody></table><p style="margin:10px 0 0"><a href="#/grammar/combine">Open the worked examples</a></p></div></details>' +
       '<div class="split" style="grid-template-columns:1fr 280px"><div id="pq"></div><aside class="card"><h2>Question palette</h2><div class="in"><div class="pal" id="ppal"></div>' +
       '<p class="srcline" style="margin-top:10px" id="psum"></p></div></aside></div>';
     var redraw = function () { S.practice.cur = 0; save(); draw(); };
     $('#pfs').onchange = function () { f.src = this.value; redraw(); };
     $('#pft').onchange = function () { f.type = this.value; redraw(); };
     $('#pfp').onchange = function () { f.topic = this.value; redraw(); };
+    $('#pmix').onclick = function () {
+      if (S.practice.order) delete S.practice.order; else S.practice.order = shuffle(PRACTICE.map(function (p) { return p.id; }));
+      S.practice.cur = 0; save(); viewPractice({ q: {} }); hydrate(app);
+    };
     $('#preset').onclick = function () { if (confirm('Clear all saved practice answers?')) { S.practice.ans = {}; save(); draw(); } };
     function draw() {
       var list = pFiltered(), cur = Math.min(S.practice.cur || 0, Math.max(list.length - 1, 0));
@@ -435,8 +458,42 @@
     draw();
   }
 
+  /* ---------- PREPARE TEST (links) ---------- */
+  function viewPrepare() {
+    var mine = S.links = S.links || [];
+    app.innerHTML = '<h1>Prepare test</h1><p class="lead">Links to online tests and ready-made Google searches. They open in a new tab. ' +
+      'Add your own links below (for example a Google Form quiz that a teacher or a friend shared); they are saved in this browser.</p>' +
+      '<div class="card" style="margin-bottom:16px"><h2>Add your own test link</h2><div class="in"><div class="tools" style="margin:0">' +
+      '<input type="text" id="lt" placeholder="Title (e.g. Grammar quiz week 3)" style="flex:1;min-width:200px">' +
+      '<input type="url" id="lu" placeholder="https://forms.gle/... or any link" style="flex:2;min-width:240px">' +
+      '<button class="btn solid" id="ladd">' + ic('plus') + ' Add</button></div><p class="srcline" id="lmsg" style="margin:8px 0 0"></p></div></div>' +
+      '<div id="lmine"></div>' +
+      PREP_LINKS.map(function (g) {
+        return '<div class="card" style="margin-bottom:16px"><h2>' + esc(g.g) + '</h2><div class="in"><div class="grid c2">' +
+          g.items.map(function (it) {
+            return '<a class="tile" href="' + esc(it.u) + '" target="_blank" rel="noopener"><span class="ico">' + ic('link') + '</span><b>' + esc(it.t) + '</b><small>' + esc(it.n) + '</small><small style="word-break:break-all">' + esc(it.u.replace(/^https?:\/\//, '').slice(0, 70)) + '</small></a>';
+          }).join('') + '</div></div></div>';
+      }).join('') +
+      '<p class="srcline">These links were collected with Google search. Websites change, so if a page has moved, use the Google search links to find a similar test.</p>';
+    function drawMine() {
+      $('#lmine').innerHTML = mine.length ? '<div class="card" style="margin-bottom:16px"><h2>My links</h2><div class="in"><div class="grid c2">' + mine.map(function (m, i) {
+        return '<div class="tile"><span class="ico">' + ic('link') + '</span><b>' + esc(m.t) + '</b><small style="word-break:break-all">' + esc(m.u) + '</small>' +
+          '<div style="display:flex;gap:8px;margin-top:6px"><a class="btn sm solid" href="' + esc(m.u) + '" target="_blank" rel="noopener">Open ' + ic('arrow') + '</a>' +
+          '<button class="btn sm" data-del="' + i + '">' + ic('trash') + ' Remove</button></div></div>';
+      }).join('') + '</div></div></div>' : '';
+    }
+    drawMine();
+    $('#lmine').onclick = function (e) { var b = e.target.closest('[data-del]'); if (b) { mine.splice(+b.dataset.del, 1); save(); drawMine(); } };
+    $('#ladd').onclick = function () {
+      var t = $('#lt').value.trim(), u = $('#lu').value.trim();
+      if (!/^https?:\/\/\S+$/i.test(u)) { $('#lmsg').textContent = 'Please paste a full link that starts with http:// or https://'; return; }
+      mine.push({ t: t || u, u: u }); save(); $('#lt').value = ''; $('#lu').value = ''; $('#lmsg').textContent = 'Added.'; drawMine();
+    };
+  }
+
   /* ---------- boot ---------- */
   hydrate(document);
   route();
 })();
+
 
