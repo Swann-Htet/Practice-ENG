@@ -121,14 +121,16 @@
       case 'ex': return '<div class="ex">' + b.items.map(function (i) { return '<div>' + esc(i.s) + (i.n ? '<em>' + esc(i.n) + '</em>' : '') + '</div>'; }).join('') + '</div>';
       case 'table': return '<div class="scroll"><table class="t"><thead><tr>' + b.head.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
         b.rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
-      case 'method': return '<div class=""scroll""><table class=""t""><thead><tr><th>Step</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
-        GRAMMAR_METHOD.map(function (m, i) { return '<tr><td><b>' + (i + 1) + '</b></td><td>' + esc(m[0]) + '</td><td class=""my"">' + esc(m[1]) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      case 'method': return '<div class="scroll"><table class="t"><thead><tr><th>Step</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+        GRAMMAR_METHOD.map(function (m, i) { return '<tr><td><b>' + (i + 1) + '</b></td><td>' + esc(m[0]) + '</td><td class="my">' + esc(m[1]) + '</td></tr>'; }).join('') + '</tbody></table></div>';
       case 'combo': return b.items.map(function (e, n) {
-        return '<div class=""card"" style=""margin:12px 0""><h2>Example ' + (n + 1) + '</h2><div class=""in""><p style=""font-weight:700;margin:0 0 8px"">' + esc(e.s) + '</p>' +
-          '<div class=""scroll""><table class=""t""><thead><tr><th>Layer</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
-          e.steps.map(function (st, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(st[0]) + '</td><td class=""my"">' + esc(st[1]) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
-          '<p style=""margin:8px 0 0""><span class=""pill ok"">' + ic('check') + ' Answer: ' + esc(e.ans) + '</span></p></div></div>'; }).join('');
-      case 'tip': return '<div class=""tip"">' + ic('bulb') + '<span>' + esc(b.text) + '</span></div>';
+        return '<div class="card" style="margin:12px 0"><h2>Example ' + (n + 1) + '</h2><div class="in"><p style="font-weight:700;margin:0 0 8px">' + esc(e.s) + '</p>' +
+          '<div class="scroll"><table class="t"><thead><tr><th>Layer</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+          e.steps.map(function (st, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(st[0]) + '</td><td class="my">' + esc(st[1]) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+          '<p style="margin:8px 0 0"><span class="pill ok">' + ic('check') + ' Answer: ' + esc(e.ans) + '</span></p></div></div>'; }).join('');
+      case 'table4': return '<div class="scroll"><table class="t"><thead><tr>' + b.head.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        b.rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td' + (/[က-႟]/.test(c) ? ' class="my"' : '') + '>' + esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+      case 'tip': return '<div class="tip">' + ic('bulb') + '<span>' + esc(b.text) + '</span></div>';
       case 'warn': return '<div class="warn">' + ic('alert') + '<span>' + esc(b.text) + '</span></div>';
     }
     return '';
@@ -141,9 +143,9 @@
     var link = topic ? '#/practice?topic=' + encodeURIComponent(topic) : (cur.id === 'errorid' ? '#/practice?type=' + encodeURIComponent('Error identification') : (cur.id === 'textcomp' ? '#/practice?type=' + encodeURIComponent('Text completion') : ''));
     app.innerHTML = '<div class="split"><nav class="side">' + side + '</nav><article>' +
       '<h1>' + esc(cur.title) + '</h1><p class="srcline">Source: ' + esc(cur.src) + '</p>' +
-      '<p class=""my mylabel"">' + esc(cur.my) + '</p>' +
-      (cur.bi && cur.bi.length ? '<div class=""card"" style=""margin:0 0 16px""><h2>English + မြန်မာ summary</h2><div class=""in scroll""><table class=""t""><thead><tr><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
-        cur.bi.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td class=""my"">' + esc(r[1]) + '</td></tr>'; }).join('') + '</tbody></table></div></div>' : '') +
+      '<p class="my mylabel">' + esc(cur.my) + '</p>' +
+      (cur.bi && cur.bi.length ? '<div class="card" style="margin:0 0 16px"><h2>English + မြန်မာ summary</h2><div class="in scroll"><table class="t"><thead><tr><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
+        cur.bi.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td class="my">' + esc(r[1]) + '</td></tr>'; }).join('') + '</tbody></table></div></div>' : '') +
       cur.blocks.map(renderBlock).join('') +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">' +
       (prev ? '<a class="btn" href="#/grammar/' + prev.id + '">' + ic('left') + ' ' + esc(prev.title) + '</a>' : '') +
@@ -417,7 +419,7 @@
       '<button class="btn sm" id="preset">' + ic('trash') + ' Reset answers</button></div>' +
       '<details class="card" style="margin-bottom:14px"><summary class="hd" style="cursor:pointer">How to solve combined sentences: step by step (English + မြန်မာ)</summary><div class="in scroll"><table class="t"><thead><tr><th>Step</th><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
       GRAMMAR_METHOD.map(function (m, i) { return '<tr><td><b>' + (i + 1) + '</b></td><td>' + esc(m[0]) + '</td><td class="my">' + esc(m[1]) + '</td></tr>'; }).join('') +
-      '</tbody></table><p style="margin:10px 0 0"><a href="#/grammar/combine">Open the worked examples</a></p></div></details>' +
+      '</tbody></table><p style="margin:10px 0 0"><a class="btn sm" href="#/grammar/easy">How to answer easily: quick tricks</a> <a class="btn sm" href="#/grammar/combine">Worked examples</a></p></div></details>' +
       '<div class="split" style="grid-template-columns:1fr 280px"><div id="pq"></div><aside class="card"><h2>Question palette</h2><div class="in"><div class="pal" id="ppal"></div>' +
       '<p class="srcline" style="margin-top:10px" id="psum"></p></div></aside></div>';
     var redraw = function () { S.practice.cur = 0; save(); draw(); };
@@ -495,5 +497,6 @@
   hydrate(document);
   route();
 })();
+
 
 

@@ -163,6 +163,47 @@
   ];
 
   GRAMMAR.forEach(function (g) { g.bi = BI[g.id] || []; });
+  /* ---- how to answer easily ---- */
+  var EASY_ROWS = [
+    ['The choices are the SAME word in different forms (mobilizes / mobile / mobility)', 'Look at the word just before the blank: a / an / the -> adjective or noun; of / to -> noun; subject with no verb -> verb. Pick by position, not by meaning.', 'an ____ to the schedule -> adjustment', 'ရွေးချယ်စရာများသည် စကားလုံးတစ်လုံးတည်း ပုံစံအမျိုးမျိုးဖြစ်လျှင် ကွက်လပ်ရှေ့စကားကိုကြည့်ပါ။ an / the ရှေ့မှာဆိုလျှင် နာမ် (noun) သို့မဟုတ် adjective၊ ကြိယာနေရာဆိုလျှင် verb။'],
+    ['The choices are DIFFERENT TENSES (is / was / has been / will be)', 'Scan the whole sentence for time words: yesterday, ago, in + year = past; since, for, so far = present perfect; tomorrow, next = will; every day = present simple.', 'in 1492 -> landed', 'ရွေးချယ်စရာများသည် tense မတူလျှင် ဝါကျတစ်ခုလုံးမှ အချိန်ဖော်ပြစကား (yesterday, ago, since, for, tomorrow) ကို ရှာပါ။'],
+    ['The choices differ by -s (complain / complains)', 'Find the real subject (cross out in / on / of phrases and who / which / that clauses). Singular -> s; plural -> no s.', 'The paintings on the wall ____ -> are', 'ရွေးချယ်စရာများတွင် s ပါ/မပါ ကွာလျှင် အမှန်တကယ် Subject ကို ရှာပါ။ singular -> s ပါ၊ plural -> s မပါ။'],
+    ['The choices are CONNECTORS (Although / Despite / Because / In spite of)', 'Two checks: (1) meaning - contrast or cause? (2) what follows - noun (Despite, Because of) or S + V (Although, Because)?', 'Despite + noun / Although + S + V', 'ချိတ်ဆက်စကားများဖြစ်လျှင် (၁) အဓိပ္ပာယ် (ဆန့်ကျင်ဖက်/အကြောင်းရင်း) (၂) နောက်က နာမ် လား S + V လား စစ်ပါ။'],
+    ['The choices start with V-ing / to V / V3 / are + V3', 'Check if the sentence already has a main verb. If yes, choose the modifier form (V-ing active, V3 passive). If no, choose a finite verb.', 'Scholars, ____ that maths is vital, insist ... -> agreeing', 'ရွေးချယ်စရာများသည် V-ing / to V / V3 ဖြင့်စလျှင် ဝါကျတွင် အဓိကကြိယာ ရှိပြီးလားစစ်ပါ။ ရှိလျှင် ပြင်ဆင်စကားပုံစံ၊ မရှိလျှင် finite verb။'],
+    ['The choices have if-clause pairs (gave / would give, had given / would have given)', 'Match the pair: V1 + will; V2 + would; had V3 + would have V3. Only one pair is complete.', 'If he had taken ..., he wouldn\'t have missed ...', 'If ဝါကျတွင် အတွဲကိုကိုက်ညီစေပါ: V1 + will၊ V2 + would၊ had V3 + would have V3။'],
+    ['ERROR IDENTIFICATION: four underlined parts', 'Check each part in this order: (1) verb form / missing be, (2) agreement, (3) word form, (4) connector pair, (5) preposition, (6) plural noun. The first one that breaks a rule is the answer.', 'constructed in 1961 -> was constructed', 'Error ID: အပိုင်း ၄ ခုကို အစီအစဉ်အတိုင်းစစ်ပါ: ကြိယာပုံစံ/be ပျောက်၊ agreement၊ word form၊ ချိတ်ဆက်စကား၊ preposition၊ plural။'],
+    ['TEXT COMPLETION: a paragraph with blanks', 'Read one sentence before and one after the blank. Time words and plural/singular topic in the paragraph decide the tense and agreement.', 'for the past few decades, the number ... has increased', 'Text completion: ကွက်လပ်၏ အရှေ့အနောက် ဝါကျတစ်ကြောင်းစီကို ဖတ်ပါ။ အချိန်နှင့် အရေအတွက်ကို အပိုဒ်မှ ရှာပါ။']
+  ];
+  var TRAPS = [
+    ['Despite of / In spite', 'Despite (no of) + noun; In spite OF + noun', 'Despite of ဟုမသုံးပါ'],
+    ['Although ... but / Because ... so', 'Use only ONE connector per two clauses', 'ဝါကျနှစ်ခုကို ချိတ်ဆက်စကားတစ်လုံးသာ'],
+    ['Unless + don\'t / not', 'Unless already means "if not"', 'Unless နောက်တွင် အနုတ်မသုံးပါ'],
+    ['The number of ... are', 'The number of + plural -> IS (singular)', 'The number of -> singular'],
+    ['one of the most important part', 'one of the + plural noun (parts)', 'one of the ... + plural'],
+    ['looking forward to help', 'to is a preposition -> V-ing (helping)', 'looking forward to + V-ing'],
+    ['need not drive (rule)', 'for a prohibition use must not', 'ပိတ်ပင်ချက်အတွက် must not'],
+    ['was constructed missing: constructed in 1961', 'missing be before V3 (passive)', 'passive တွင် be မပျောက်စေနှင့်'],
+    ['more large / more big', 'short adjective + er (larger)', 'adjective တိုများ + er'],
+    ['a hundred bear / many student', 'plural noun after a number / many', 'နံပါတ်၊ many နောက်တွင် plural']
+  ];
+  GRAMMAR.splice(1, 0, {
+    id: 'easy', title: 'How to answer easily: quick tricks', th: '', my: 'လွယ်ကူစွာ ဖြေဆိုနည်း (အတိုကောက်လမ်းညွှန်)', src: 'Method built from the sheets and answer keys', bi: [],
+    blocks: [
+      { t: 'p', text: 'Do not try to remember every rule while answering. Use this 2-step habit: (1) read the CHOICES to name the question type, (2) apply the one-line trick for that type. It takes about 20 seconds for most items.' },
+      { t: 'h', text: 'Step 1 and 2: choices -> type -> trick' },
+      { t: 'table4', head: ['If you see ...', 'Do this', 'Example', 'မြန်မာ'], rows: EASY_ROWS },
+      { t: 'h', text: 'Trap list: the most repeated mistakes in the exam' },
+      { t: 'table4', head: ['Wrong pattern', 'Right pattern', 'မြန်မာ'], rows: TRAPS },
+      { t: 'h', text: '10-second checklist (say it in your head)' },
+      { t: 'ul', items: [
+        '1. Where is the verb?  2. Who is the subject (singular / plural)?  3. When (time word)?  4. Does the subject do it or receive it?',
+        '5. Is it a noun or a clause after the connector?  6. What is the word class (noun / adjective / adverb)?  7. Do the pairs match (and / or)?',
+        'Never leave an item blank: remove choices that break a rule, then choose among the rest.',
+        'Time plan: about 1.5 minutes per item (100 items in 3 hours). Do the grammar items fast; they are 50 items and usually need one rule each.'
+      ] },
+      { t: 'tip', text: 'When two choices look right, the wrong one usually fails one of the 7 checks above. Go back to the first check you did not do.' }
+    ]
+  });
   GRAMMAR.splice(1, 0, {
     id: 'combine', title: 'Combined sentences: step-by-step method', th: '', my: 'ရောနှောပါဝင်သော ဝါကျများကို အဆင့်ဆင့်ဖြေရှင်းနည်း', src: 'Method built from all the sheets',
     bi: [],

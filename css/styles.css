@@ -62,7 +62,9 @@ table.t td{padding:8px 10px;border:1px solid var(--line);vertical-align:top}
 .scroll{overflow-x:auto}
 
 /* grammar */
-.split{display:grid;grid-template-columns:260px 1fr;gap:22px;align-items:start}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.split>article{min-width:0;width:100%}
+.split>.side{order:2}
 .side{position:sticky;top:calc(var(--bar) + 14px);max-height:calc(100vh - var(--bar) - 40px);overflow:auto;border:1px solid var(--line);border-radius:8px}
 .side a{display:block;padding:9px 14px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);font-weight:500;font-size:15px}
 .side a small{display:block;color:var(--mut);font-size:12px}
@@ -146,6 +148,7 @@ ul.b li{margin:4px 0}
 
 @media (max-width:900px){
   .split,.read{grid-template-columns:1fr}
+  .split>.side{order:0}
   .side{position:static;max-height:none;display:flex;overflow-x:auto}
   .side a{border-bottom:0;border-right:1px solid var(--line);white-space:nowrap}
   .qpane{max-height:none}
@@ -158,4 +161,6 @@ ul.b li{margin:4px 0}
 .card>summary.hd::-webkit-details-marker{display:none}
 .card>summary.hd::before{content:'+';margin-right:8px;font-weight:800}
 details[open]>summary.hd::before{content:'-'}
+
+
 
