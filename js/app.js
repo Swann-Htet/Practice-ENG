@@ -23,6 +23,7 @@
     bulb: '<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>',
     alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
     link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
     plus: '<path d="M12 5v14M5 12h14"/>', trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
     redo: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>'
   };
@@ -39,7 +40,7 @@
 
   /* ---------- helpers ---------- */
   var app = $('#app');
-  var NAV = [['home', 'Home'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice'], ['prepare', 'Prepare test']];
+  var NAV = [['home', 'Home'], ['skill', 'Skill test'], ['grammar', 'Grammar patterns'], ['vocab', 'Vocabulary'], ['reading', 'Reading'], ['listening', 'Listening'], ['practice', 'Grammar practice'], ['prepare', 'Prepare test']];
   function hydrate(r) { $$('[data-ic]', r || document).forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-ic')); el.removeAttribute('data-ic'); }); }
   function parseHash() {
     var h = location.hash.replace(/^#\/?/, ''), q = {}, i = h.indexOf('?');
@@ -55,7 +56,7 @@
     var r = parseHash();
     $('#nav').innerHTML = NAV.map(function (n) { return '<a href="#/' + n[0] + '" class="' + (n[0] === r.page ? 'on' : '') + '">' + n[1] + '</a>'; }).join('');
     stopSpeak();
-    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice, prepare: viewPrepare }[r.page] || viewHome;
+    var fn = { home: viewHome, grammar: viewGrammar, vocab: viewVocab, reading: viewReading, listening: viewListening, practice: viewPractice, prepare: viewPrepare, skill: function (r) { if (r.id === 'result') { var sk = SK(); if (sk.cur && sk.cur.result) { skillResult(); return; } } viewSkill(); } }[r.page] || viewHome;
     app.className = 'view'; app.style.animation = 'none'; void app.offsetHeight; app.style.animation = '';
     fn(r); hydrate(app); window.scrollTo(0, 0);
   }
@@ -95,6 +96,7 @@
       '<div class="kpi"><b>' + rt[1] + '</b><span>Reading questions</span></div><div class="kpi"><b>' + lt[1] + '</b><span>Listening items</span></div>' +
       '<div class="kpi"><b>' + PRACTICE.length + '</b><span>Practice items</span></div></div>' +
       '<div class="grid c3">' +
+      tile('#/skill', 'target', 'Skill test', 'A 30-minute diagnostic test, then your personal 4-week outline.', 0, 0).replace('0 / 0 done', (S.skill && S.skill.history ? S.skill.history.length : 0) + ' attempts') +
       tile('#/grammar', 'pattern', 'Grammar patterns', 'Every pattern in the sheets, with examples, tips and traps.', 0, 0).replace('0 / 0 done', GRAMMAR.length + ' topics') +
       tile('#/vocab', 'vocab', 'Vocabulary', 'English + Burmese. List, flashcards and quiz.', known, VOCAB.length) +
       tile('#/reading', 'read', 'Reading practice', 'Five passages, glossary, Burmese gist, explained answers.', rt[0], rt[1]) +
@@ -111,7 +113,7 @@
 
   /* ---------- GRAMMAR ---------- */
   var TOPIC_MAP = { pos: 'Word form', svo: 'Sentence structure', phrase: 'Sentence structure', connectors: 'Connector', sv: 'Agreement', tense: 'Tense',
-    modal: 'Modal', passive: 'Voice', shortcut: 'Tense', adjadv: 'Adjective & adverb', nonfinite: 'Non-finite verb', quant: 'Quantifier', if: 'If-clause', parallel: 'Parallel structure' };
+    modal: 'Modal', passive: 'Voice', shortcut: 'Tense', adjadv: 'Adjective & adverb', nonfinite: 'Non-finite verb', quant: 'Quantifier', if: 'If-clause', parallel: 'Parallel structure', reported: 'Reported speech', ifmixed: 'Mixed if-clause', perfectpast: 'Present perfect + past simple' };
   function renderBlock(b) {
     switch (b.t) {
       case 'p': return '<p>' + esc(b.text) + '</p>';
@@ -147,11 +149,34 @@
       (cur.bi && cur.bi.length ? '<div class="card" style="margin:0 0 16px"><h2>English + မြန်မာ summary</h2><div class="in scroll"><table class="t"><thead><tr><th>English</th><th>မြန်မာ</th></tr></thead><tbody>' +
         cur.bi.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td class="my">' + esc(r[1]) + '</td></tr>'; }).join('') + '</tbody></table></div></div>' : '') +
       cur.blocks.map(renderBlock).join('') +
+      (cur.quiz ? '<div class="card" style="margin-top:22px"><h2>Quick quiz: ' + esc(cur.title) + ' <span class="pill" id="gqscore" style="float:right;text-transform:none;letter-spacing:0"></span></h2><div class="in" id="gq"></div></div>' : '') +
       '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">' +
       (prev ? '<a class="btn" href="#/grammar/' + prev.id + '">' + ic('left') + ' ' + esc(prev.title) + '</a>' : '') +
       (link ? '<a class="btn solid" href="' + link + '">' + ic('pen') + ' Practice this topic</a>' : '') +
       (next ? '<a class="btn" href="#/grammar/' + next.id + '">' + esc(next.title) + ' ' + ic('arrow') + '</a>' : '') +
       '</div></article></div>';
+    if (cur.quiz) miniQuiz(cur.quiz);
+  }
+  /* quick quiz under a grammar topic: uses the practice bank, answers are shared with Grammar practice */
+  function miniQuiz(topic) {
+    var items = PRACTICE.filter(function (p) { return p.topic === topic; }), ans = S.practice.ans, box = $('#gq');
+    function draw() {
+      var d = items.filter(function (p) { return ans[p.id] != null; }).length, ok = items.filter(function (p) { return ans[p.id] === p.a; }).length;
+      $('#gqscore').textContent = d + ' / ' + items.length + ' answered, ' + ok + ' correct';
+      box.innerHTML = items.map(function (p, qi) {
+        var a = ans[p.id], done = a != null;
+        return '<div class="qi" data-id="' + p.id + '">' + howTo(p.type) + '<div class="qn"><span class="num">' + (qi + 1) + '</span><p>' + esc(p.q) + '</p></div>' +
+          p.opts.map(function (o, i) { var cls = ''; if (done) { if (i === p.a) cls = 'ok'; else if (i === a) cls = 'bad'; } return option(i, o, cls, done); }).join('') +
+          (done ? whyBox(p.why, p.note) : '') + '</div>';
+      }).join('') + '<button class="btn sm" id="gqreset">' + ic('redo') + ' Reset this quiz</button>';
+    }
+    draw();
+    box.onclick = function (e) {
+      var b = e.target.closest('.opt'), rs = e.target.closest('#gqreset');
+      if (rs) { items.forEach(function (p) { delete ans[p.id]; }); save(); draw(); return; }
+      if (!b || b.disabled) return;
+      ans[b.closest('.qi').dataset.id] = +b.dataset.k; save(); var y = window.scrollY; draw(); window.scrollTo(0, y);
+    };
   }
 
   /* ---------- VOCAB ---------- */
@@ -441,6 +466,7 @@
       var p = list[cur], a = ans[p.id], d = a != null;
       $('#pq').innerHTML = '<div class="card"><h2>Item ' + (cur + 1) + ' of ' + list.length + '</h2><div class="in">' +
         '<p><span class="tag">' + esc(PRACTICE_SRC[p.src].split(' (')[0]) + '</span><span class="tag">' + esc(p.type) + '</span><span class="tag">' + esc(p.topic) + '</span></p>' +
+        howTo(p.type) +
         '<div class="qn"><span class="num">' + (cur + 1) + '</span><p>' + esc(p.q) + '</p></div>' +
         p.opts.map(function (o, i) { var cls = ''; if (d) { if (i === p.a) cls = 'ok'; else if (i === a) cls = 'bad'; } return option(i, o, cls, d); }).join('') +
         (d ? whyBox(p.why, p.note) : '') +
@@ -493,10 +519,169 @@
     };
   }
 
+  /* ---------- SKILL TEST + PERSONAL OUTLINE ---------- */
+  var G_TOPICS = ['Connector', 'Tense', 'Modal', 'Agreement', 'Voice', 'Word form', 'Adjective & adverb', 'Non-finite verb', 'Sentence structure', 'If-clause', 'Quantifier', 'Parallel structure'];
+  var G_PAGE = { 'Word form': 'pos', 'Agreement': 'sv', 'Tense': 'tense', 'Voice': 'passive', 'Modal': 'modal', 'Connector': 'connectors', 'Adjective & adverb': 'adjadv',
+    'Non-finite verb': 'nonfinite', 'Quantifier': 'quant', 'If-clause': 'if', 'Parallel structure': 'parallel', 'Sentence structure': 'svo' };
+  var G_MY = { 'Word form': 'စကားလုံးပုံစံ', 'Agreement': 'ကတ္တား-ကြိယာ ကိုက်ညီမှု', 'Tense': 'ကာလ (Tense)', 'Voice': 'Passive / Active', 'Modal': 'Modal ကြိယာ',
+    'Connector': 'ချိတ်ဆက်စကား', 'Adjective & adverb': 'Adjective / Adverb', 'Non-finite verb': 'Non-finite ကြိယာ', 'Quantifier': 'အရေအတွက်စကား', 'If-clause': 'If ဝါကျ',
+    'Parallel structure': 'အပြိုင်ပုံစံ', 'Sentence structure': 'ဝါကျဖွဲ့စည်းပုံ' };
+  function howTo(type) {
+    var m = {
+      'Error identification': ['Error identification: choose the part that is INCORRECT.', 'အမှားရှာခြင်း: (1) မှ (4) အထိ ပါသော အပိုင်းများအနက် အမှားဖြစ်သော အပိုင်းကို ရွေးပါ။'],
+      'Incomplete sentence': ['Incomplete sentence: choose the answer that correctly fills the blank (____).', 'ဝါကျပြည့်စုံရန်: ကွက်လပ် (____) ကို မှန်ကန်စွာ ဖြည့်နိုင်သော အဖြေကို ရွေးပါ။'],
+      'Text completion': ['Text completion: choose the answer that fits the blank with the number shown, using the whole paragraph.', 'စာပိုဒ်ဖြည့်ခြင်း: ပေးထားသော အမှတ်စဉ်ကွက်လပ်ကို အပိုဒ်တစ်ခုလုံးအရ အသင့်တော်ဆုံး အဖြေဖြင့် ဖြည့်ပါ။']
+    };
+    var h = m[type]; if (!h) return '';
+    return '<div class="tip" style="margin:0 0 12px">' + ic('info') + '<span><b>' + esc(h[0]) + '</b><br><span class="my">' + esc(h[1]) + '</span></span></div>';
+  }
+  var SK = function () { return (S.skill = S.skill || { cur: null, history: [] }); };
+  function pick(arr, n) { return shuffle(arr).slice(0, n); }
+  function buildSkillTest() {
+    var items = [];
+    G_TOPICS.forEach(function (t) {
+      pick(PRACTICE.filter(function (p) { return p.topic === t && p.type !== 'Text completion'; }), 2).forEach(function (p) { items.push({ k: 'G', sec: 'Grammar', topic: t, id: p.id }); });
+    });
+    var pool = VOCAB.filter(function (v) { return v.my && v.pos && v.pos.length < 12 && v.c !== 'dm' && v.c !== 'memory' && v.w.length < 22; });
+    pick(pool, 6).forEach(function (v) {
+      var wrong = pick(VOCAB.filter(function (x) { return x.my !== v.my && x.c !== 'dm'; }), 3).map(function (x) { return x.my; });
+      var opts = shuffle([v.my].concat(wrong));
+      items.push({ k: 'V', sec: 'Vocabulary', topic: v.c, w: v.w, pos: v.pos, opts: opts, a: opts.indexOf(v.my), why: v.w + ' = ' + v.my + (v.x ? ' (' + v.x + ')' : '') });
+    });
+    var rp = READING.filter(function (r) { return r.id === 'exam'; })[0];
+    pick(rp.questions.map(function (q, i) { return i; }), 4).sort().forEach(function (i) { items.push({ k: 'R', sec: 'Reading', topic: 'Exam instructions', qi: i }); });
+    var lp = LISTENING.filter(function (l) { return l.id === 'c1'; })[0];
+    lp.questions.forEach(function (q, i) { items.push({ k: 'L', sec: 'Listening', topic: 'Conversation', qi: i }); });
+    return { items: items, ans: {}, i: 0, done: false, t0: Date.now() };
+  }
+  function skillItem(it) {
+    if (it.k === 'G') { var p = PRACTICE.filter(function (x) { return x.id === it.id; })[0]; return { q: p.q, opts: p.opts, a: p.a, why: p.why, sub: p.type + ' · ' + p.topic, type: p.type }; }
+    if (it.k === 'V') return { q: 'What is the Burmese meaning of "' + it.w + '" (' + it.pos + ')?', opts: it.opts, a: it.a, why: it.why, sub: 'Vocabulary', my: true };
+    if (it.k === 'R') { var rp = READING.filter(function (r) { return r.id === 'exam'; })[0], q = rp.questions[it.qi]; return { q: q.q, opts: q.opts, a: q.a, why: q.why, sub: 'Reading · Examination instructions', passage: rp.paras }; }
+    var lp = LISTENING.filter(function (l) { return l.id === 'c1'; })[0], lq = lp.questions[it.qi];
+    return { q: lq.q, opts: lq.opts, a: lq.a, why: lq.why, sub: 'Listening · play the conversation, then answer', listen: lp.lines };
+  }
+  function viewSkill() {
+    var sk = SK(), cur = sk.cur;
+    if (!cur) {
+      var last = sk.history[sk.history.length - 1];
+      app.innerHTML = '<h1>Skill test</h1><p class="lead">A diagnostic test of about 35 questions and 25 to 30 minutes. It covers grammar (12 topics), vocabulary, reading and listening. ' +
+        'You see no hints or answers during the test. At the end you get your level, your weak topics and a personal study outline.</p>' +
+        '<div class="grid c3"><div class="tile"><b>24 grammar items</b><small>2 items for each of 12 topics: connectors, tense, modal, agreement, voice, word form, adjective/adverb, non-finite verbs and more.</small></div>' +
+        '<div class="tile"><b>6 vocabulary items</b><small>English to Burmese meaning.</small></div>' +
+        '<div class="tile"><b>4 reading + 3 listening</b><small>A short notice (reading) and a spoken conversation (read aloud by your browser).</small></div></div>' +
+        (last ? '<div class="card" style="margin-top:16px"><h2>Your last result</h2><div class="in">' + esc(last.date) + ': <b>' + last.pct + '%</b> (' + esc(last.level) + '). <a href="#/skill/result">Open outline</a></div></div>' : '') +
+        '<p style="margin-top:18px"><button class="btn solid" id="skstart">' + ic('arrow') + ' ' + (last ? 'Take the test again' : 'Start the test') + '</button></p>';
+      $('#skstart').onclick = function () { sk.cur = buildSkillTest(); save(); viewSkill(); hydrate(app); };
+      return;
+    }
+    if (cur.done) { return skillResult(); }
+    var it = cur.items[cur.i], d = skillItem(it), a = cur.ans[cur.i], total = cur.items.length;
+    app.innerHTML = '<div class="tools"><span class="pill">' + (cur.i + 1) + ' / ' + total + '</span><span class="pill">' + esc(it.sec) + '</span>' +
+      '<span class="srcline" style="margin:0">' + esc(d.sub) + '</span><span class="sp"></span><button class="btn sm" id="skquit">' + ic('x') + ' Quit test</button></div>' +
+      '<div class="tile" style="padding:0;height:8px;margin-bottom:14px;overflow:hidden"><i style="display:block;height:100%;background:var(--red);width:' + Math.round(cur.i / total * 100) + '%"></i></div>' +
+      '<div class="card"><h2>Question ' + (cur.i + 1) + '</h2><div class="in">' + (d.type ? howTo(d.type) : (it.k === 'V' ? '<div class="tip" style="margin:0 0 12px">' + ic('info') + '<span><b>Vocabulary: choose the correct Burmese meaning.</b></span></div>' : '')) +
+      (d.passage ? '<div class="passage" style="margin-bottom:12px;font-size:15px">' + d.passage.map(function (t) { return '<p>' + esc(t) + '</p>'; }).join('') + '</div>' : '') +
+      (d.listen ? '<div class="player"><button class="btn solid pbtn" id="skplay">' + ic('play') + ' Play conversation</button><span class="srcline" style="margin:0">You may play it more than once.</span></div>' : '') +
+      '<div class="qn"><span class="num">' + (cur.i + 1) + '</span><p>' + esc(d.q) + '</p></div>' +
+      d.opts.map(function (o, i) { return '<button class="opt ' + (d.my ? 'my ' : '') + (a === i ? 'sel' : '') + '" data-k="' + i + '"><span class="k">' + L(i) + '</span><span>' + esc(o) + '</span></button>'; }).join('') +
+      '<div style="display:flex;justify-content:space-between;margin-top:12px"><button class="btn" id="skprev"' + (cur.i === 0 ? ' disabled' : '') + '>' + ic('left') + ' Back</button>' +
+      '<button class="btn solid" id="sknext">' + (cur.i === total - 1 ? 'Finish and see my outline' : 'Next') + ' ' + ic('arrow') + '</button></div></div></div>';
+    $$('.opt', app).forEach(function (b) { b.onclick = function () { cur.ans[cur.i] = +b.dataset.k; save(); $$('.opt', app).forEach(function (x) { x.classList.toggle('sel', x === b); }); }; });
+    $('#skprev').onclick = function () { cur.i--; save(); viewSkill(); hydrate(app); };
+    $('#sknext').onclick = function () {
+      if (cur.i < total - 1) { cur.i++; save(); viewSkill(); hydrate(app); return; }
+      var un = total - Object.keys(cur.ans).length;
+      if (un && !confirm(un + ' question(s) are unanswered and count as wrong. Finish now?')) return;
+      finishSkill();
+    };
+    $('#skquit').onclick = function () { if (confirm('Quit the test? Your answers will be cleared.')) { sk.cur = null; save(); viewSkill(); hydrate(app); } };
+    var pl = $('#skplay'); if (pl) pl.onclick = function () { if (speaking) { stopSpeak(); return; } speak(d.listen, 0.95, false, pl); };
+  }
+  function finishSkill() {
+    var sk = SK(), cur = sk.cur, by = {}, topics = {}, ok = 0;
+    cur.items.forEach(function (it, i) {
+      var d = skillItem(it), right = cur.ans[i] === d.a;
+      if (right) ok++;
+      var s = by[it.sec] = by[it.sec] || { ok: 0, n: 0 }; s.n++; if (right) s.ok++;
+      if (it.k === 'G') { var t = topics[it.topic] = topics[it.topic] || { ok: 0, n: 0 }; t.n++; if (right) t.ok++; }
+    });
+    var pct = Math.round(ok / cur.items.length * 100);
+    var level = pct >= 80 ? 'Strong' : pct >= 60 ? 'Near / at pass level' : pct >= 40 ? 'Developing' : 'Needs a base';
+    cur.done = true; cur.result = { pct: pct, ok: ok, n: cur.items.length, by: by, topics: topics, level: level, date: new Date().toISOString().slice(0, 10), mins: Math.max(1, Math.round((Date.now() - cur.t0) / 60000)) };
+    sk.history.push({ date: cur.result.date, pct: pct, level: level, by: by }); save();
+    location.hash = '#/skill/result'; route();
+  }
+  var STUDY_MIN = 40;
+  function skillResult() {
+    var sk = SK(), cur = sk.cur;
+    if (!cur || !cur.result) { location.hash = '#/skill'; return; }
+    var r = cur.result, hist = sk.history;
+    var prev = hist.length > 1 ? hist[hist.length - 2] : null;
+    var bar = function (label, ok, n, extra) { var p = n ? Math.round(ok / n * 100) : 0; return '<tr><td>' + label + '</td><td style="width:45%"><span style="display:block;height:12px;background:var(--tint2);border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:' + p + '%;background:' + (p >= 60 ? 'var(--ok)' : 'var(--red)') + '"></i></span></td><td><b>' + ok + ' / ' + n + '</b> (' + p + '%)</td><td>' + (extra || '') + '</td></tr>'; };
+    var gt = G_TOPICS.map(function (t) { var x = r.topics[t] || { ok: 0, n: 0 }; return { t: t, ok: x.ok, n: x.n, p: x.n ? x.ok / x.n : 1, i: G_TOPICS.indexOf(t) }; });
+    var weak = gt.filter(function (x) { return x.p < 1; }).sort(function (a, b) { return a.p - b.p || a.i - b.i; });
+    var strong = gt.filter(function (x) { return x.p === 1; });
+    var vocabBad = (r.by.Vocabulary && r.by.Vocabulary.ok / r.by.Vocabulary.n < 0.6), readBad = (r.by.Reading && r.by.Reading.ok / r.by.Reading.n < 0.6), listBad = (r.by.Listening && r.by.Listening.ok / r.by.Listening.n < 0.6);
+    var focus = weak.slice(0, 6).map(function (x) { return x.t; });
+    while (focus.length < 3) { var nx = G_TOPICS.filter(function (t) { return focus.indexOf(t) < 0; })[0]; if (!nx) break; focus.push(nx); }
+    var m = STUDY_MIN, per = m >= 60 ? 15 : m >= 40 ? 10 : 6, words = m >= 60 ? 20 : m >= 40 ? 12 : 8;
+    var gl = function (t) { return '<a href="#/grammar/' + G_PAGE[t] + '">' + esc(t) + '</a> <span class="my">(' + esc(G_MY[t]) + ')</span>'; };
+    var pr = function (t) { return '<a href="#/practice?topic=' + encodeURIComponent(t) + '">practice ' + esc(t) + '</a>'; };
+    var w1 = focus.slice(0, 3), w2 = focus.slice(3, 6).concat(focus.slice(0, 3)).slice(0, 3);
+    var wrongRows = cur.items.map(function (it, i) { return { it: it, d: skillItem(it), a: cur.ans[i], i: i }; }).filter(function (x) { return x.a !== x.d.a; });
+    app.innerHTML = '<div class="no-print"><a href="#/skill">&larr; Skill test</a></div>' +
+      '<h1>Your result and personal outline</h1><p class="srcline">Test date ' + esc(r.date) + ' &middot; about ' + r.mins + ' minutes &middot; ' + r.n + ' questions</p>' +
+      '<div class="kpis"><div class="kpi"><b>' + r.pct + '%</b><span>Overall</span></div><div class="kpi"><b>' + esc(r.level) + '</b><span>Level (pass = 60%)</span></div>' +
+      (prev ? '<div class="kpi"><b>' + (r.pct - prev.pct >= 0 ? '+' : '') + (r.pct - prev.pct) + '%</b><span>vs last test (' + prev.pct + '%)</span></div>' : '') + '</div>' +
+      '<div class="card" style="margin-bottom:16px"><h2>1. Score by skill</h2><div class="in scroll"><table class="t"><tbody>' +
+      ['Grammar', 'Vocabulary', 'Reading', 'Listening'].map(function (k) { var s = r.by[k] || { ok: 0, n: 0 }; return bar(k, s.ok, s.n); }).join('') + '</tbody></table></div></div>' +
+      '<div class="card" style="margin-bottom:16px"><h2>2. Grammar topics (2 items each)</h2><div class="in scroll"><table class="t"><tbody>' +
+      gt.map(function (x) { return bar(esc(x.t) + ' <span class="my">' + esc(G_MY[x.t]) + '</span>', x.ok, x.n, x.p === 1 ? '<span class="pill ok">strong</span>' : x.p === 0 ? '<span class="pill bad">weak</span>' : '<span class="pill">review</span>'); }).join('') + '</tbody></table></div></div>' +
+      '<div class="card" style="margin-bottom:16px"><h2>3. What this means</h2><div class="in"><ul class="b">' +
+      '<li><b>Top priorities:</b> ' + (focus.length ? focus.slice(0, 3).map(gl).join(', ') : 'no weak grammar topic found') + '.</li>' +
+      (strong.length ? '<li><b>Keep as is (strong):</b> ' + strong.map(function (x) { return esc(x.t); }).join(', ') + '.</li>' : '') +
+      (vocabBad ? '<li><b>Vocabulary is below 60%:</b> add a daily word set (below).</li>' : '') +
+      (readBad ? '<li><b>Reading is below 60%:</b> read one passage a day and study the glossary and explanations.</li>' : '') +
+      (listBad ? '<li><b>Listening is below 60%:</b> listen to one item a day, answer first, then read the script.</li>' : '') +
+      '<li><b>Exam target:</b> 60 items out of about 100. Grammar is about 50 of them, so each grammar topic you fix is worth about 4 to 8 points.</li></ul></div></div>' +
+      '<div class="card" style="margin-bottom:16px"><h2>4. Your 4-week outline <label style="float:right;text-transform:none;letter-spacing:0">Time per day: <select id="skmin"><option value="20">20 min</option><option value="40">40 min</option><option value="60">60 min</option></select></label></h2><div class="in scroll">' +
+      '<table class="t"><thead><tr><th>Week</th><th>Goal</th><th>Daily tasks (about ' + m + ' minutes)</th></tr></thead><tbody>' +
+      '<tr><td><b>1</b></td><td>Fix the first 3 weak topics<br><span class="my">အားနည်းချက် ၃ ခုကို ပြင်ရန်</span></td><td><ul class="b" style="margin:0">' +
+        '<li>Read <a href="#/grammar/easy">How to answer easily</a> once (10 min).</li>' +
+        w1.map(function (t) { return '<li>' + gl(t) + ': read the page, then ' + pr(t) + ' (' + per + ' items).</li>'; }).join('') +
+        '<li>Vocabulary: ' + words + ' new words (flashcards).</li></ul></td></tr>' +
+      '<tr><td><b>2</b></td><td>Next topics + connectors<br><span class="my">နောက်အပိုင်းများနှင့် ချိတ်ဆက်စကား</span></td><td><ul class="b" style="margin:0">' +
+        (weak.length > 3 ? weak.slice(3, 6).map(function (x) { return '<li>' + gl(x.t) + ': ' + pr(x.t) + ' (' + per + ' items).</li>'; }).join('') : '<li>Review ' + w1.map(gl).join(', ') + ' with 5 new items each.</li>') +
+        '<li>Read <a href="#/grammar/connectors">Connectors</a> and do 10 connector items.</li>' +
+        '<li>Reading: <a href="#/reading/vaccine">one passage</a> every other day.</li></ul></td></tr>' +
+      '<tr><td><b>3</b></td><td>Mixed practice (combined sentences)<br><span class="my">ရောနှောလေ့ကျင့်ခန်း</span></td><td><ul class="b" style="margin:0">' +
+        '<li>Use <a href="#/practice">Mix order</a>: ' + (per + 5) + ' items a day with the step method.</li>' +
+        '<li>Open <a href="#/grammar/combine">Combined sentences</a> and redo the 8 worked examples without looking.</li>' +
+        '<li>Listening: <a href="#/listening">one item a day</a>' + (listBad ? ' (this is a weak area)' : '') + '.</li>' +
+        '<li>Vocabulary: quiz mode, ' + words + ' words.</li></ul></td></tr>' +
+      '<tr><td><b>4</b></td><td>Test and polish<br><span class="my">စစ်ဆေးပြီး ပြုပြင်ရန်</span></td><td><ul class="b" style="margin:0">' +
+        '<li>Retake this <a href="#/skill">skill test</a> and compare with ' + r.pct + '%.</li>' +
+        '<li>Do the simulation items in <a href="#/practice?type=' + encodeURIComponent('Error identification') + '">Error identification</a> and <a href="#/practice?type=' + encodeURIComponent('Text completion') + '">Text completion</a> with a timer (1.5 min each).</li>' +
+        '<li>Review every wrong answer in the list below.</li></ul></td></tr></tbody></table></div></div>' +
+      '<div class="card" style="margin-bottom:16px"><h2>5. Questions you missed (' + wrongRows.length + ')</h2><div class="in">' +
+      (wrongRows.length ? wrongRows.map(function (x) { return '<div class="rev" style="padding:10px 0;border-top:1px solid var(--line)"><span class="tag">' + esc(x.d.sub) + '</span><br><b>' + esc(x.d.q) + '</b><br>' +
+        'Your answer: <span style="color:var(--bad)">' + (x.a == null ? 'not answered' : esc(x.d.opts[x.a])) + '</span><br>Correct: <b style="color:var(--ok)">' + esc(x.d.opts[x.d.a]) + '</b><br><span class="srcline">' + esc(x.d.why) + '</span></div>'; }).join('') : '<p>No mistakes. Excellent.</p>') +
+      '</div></div>' +
+      '<div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn solid" id="skprint">' + ic('read') + ' Print / save as PDF</button><button class="btn" id="skagain">' + ic('redo') + ' Take the test again</button></div>';
+    $('#skmin').value = String(STUDY_MIN);
+    $('#skmin').onchange = function () { STUDY_MIN = +this.value; skillResult(); hydrate(app); };
+    $('#skprint').onclick = function () { window.print(); };
+    $('#skagain').onclick = function () { sk.cur = null; save(); location.hash = '#/skill'; route(); };
+  }
+
   /* ---------- boot ---------- */
   hydrate(document);
   route();
 })();
+
+
+
 
 
 

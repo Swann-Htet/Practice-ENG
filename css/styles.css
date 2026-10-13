@@ -164,3 +164,6 @@ details[open]>summary.hd::before{content:'-'}
 
 
 
+
+@media print{.bar,.foot,.no-print,.side{display:none!important}main{padding:0!important}.card{break-inside:avoid}body{font-size:13px}}
+
